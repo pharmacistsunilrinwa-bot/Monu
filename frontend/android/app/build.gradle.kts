@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.trmex.personal_ai_assistant"
-    compileSdk = 36
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -23,7 +23,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("/home/runner/work/Trmex-1/Trmex-1/frontend/android/app/upload-keystore.jks")
+            storeFile = file("upload-keystore.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD")
             keyAlias = "key0"
             keyPassword = System.getenv("KEY_PASSWORD")
@@ -33,7 +33,7 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
+            isMinifyEnabled = false
         }
     }
 }

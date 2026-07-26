@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@google/gemini-cli": "^0.52.0"
+  },
+  "allowScripts": {
+    "@github/keytar@7.10.6": true,
+    "node-pty@1.0.0": true
+  }
+}

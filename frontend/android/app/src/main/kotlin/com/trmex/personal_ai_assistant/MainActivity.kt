@@ -1,4 +1,4 @@
-package com.example.personal_ai_assistant
+package com.trmex.personal_ai_assistant
 
 import io.flutter.embedding.android.FlutterActivity
 
