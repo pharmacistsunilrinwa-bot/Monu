@@ -37,7 +37,6 @@ android {
             shrinkResources = true
         }
     }
-    }
 }
 
 flutter {
