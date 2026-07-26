@@ -38,7 +38,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Map<String, String>> _messages = [];
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecording = false;
-  final String _baseUrl = "YOUR_NGROK_URL"; // User needs to replace this
+  final String _baseUrl = "https://trmex-1.onrender.com";
 
   Future<void> _sendMessage(String text) async {
     if (text.isEmpty) return;
