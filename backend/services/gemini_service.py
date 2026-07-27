@@ -27,7 +27,7 @@ class GeminiService:
 
     async def generate_content(self, prompt: str):
         try:
-            response = self.model.generate_content(prompt)
+            response = await self.model.generate_content_async(prompt)
             return response.text
         except Exception as e:
             # If rate limited or other API error, try rotating

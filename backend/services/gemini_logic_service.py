@@ -47,7 +47,7 @@ class GeminiLogicService:
     async def reasoned_chat(self, prompt: str, context: str = ""):
         full_prompt = f"Previous conversation:\n{context}\n\nCurrent message: {prompt}" if context else prompt
         try:
-            response = self.model.generate_content(full_prompt)
+            response = await self.model.generate_content_async(full_prompt)
             return response.text
         except Exception as e:
             print(f"Logic Error with key {self.current_key_index}: {e}. Rotating...")

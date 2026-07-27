@@ -87,8 +87,8 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     # 1. Retrieve history context
     context = await gemini_logic_service.get_context(db, request.user_id)
     
-    # 2. Analyze sentiment
-    sentiment = sentiment_service.analyze_text(request.message)
+    # 2. Analyze sentiment (non-blocking)
+    asyncio.create_task(asyncio.to_thread(sentiment_service.analyze_text, request.message))
     
     # 3. Get reasoned response with context
     response_text = await gemini_logic_service.reasoned_chat(request.message, context)
@@ -102,6 +102,24 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     db.add(new_entry)
     
     return ChatResponse(response=response_text)
+
+@app.get("/chat/history")
+async def get_chat_history(user_id: str = "default", db: AsyncSession = Depends(get_db)):
+    from sqlalchemy.future import select
+    result = await db.execute(
+        select(ChatHistory)
+        .where(ChatHistory.user_id == user_id)
+        .order_by(ChatHistory.timestamp.asc())
+    )
+    history = result.scalars().all()
+    return [{"role": "user", "content": h.message} if i % 2 == 0 else {"role": "assistant", "content": h.response} 
+            for h in history for i in range(2)]
+
+@app.delete("/chat/history")
+async def clear_chat_history(user_id: str = "default", db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import delete
+    await db.execute(delete(ChatHistory).where(ChatHistory.user_id == user_id))
+    return {"success": True, "message": "History cleared"}
 
 @app.post("/voice-to-text")
 async def voice_to_text(file: UploadFile = File(...)):

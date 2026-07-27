@@ -1,15 +1,16 @@
 import os
-from openai import OpenAI
+from openai import AsyncOpenAI
 from gtts import gTTS
 import tempfile
+import asyncio
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class VoiceService:
     @staticmethod
     async def speech_to_text(audio_file_path: str) -> str:
         with open(audio_file_path, "rb") as audio_file:
-            transcript = client.audio.transcriptions.create(
+            transcript = await client.audio.transcriptions.create(
                 model="whisper-1", 
                 file=audio_file
             )
@@ -17,10 +18,13 @@ class VoiceService:
 
     @staticmethod
     async def text_to_speech(text: str) -> str:
-        # Using Google TTS for free/easy implementation, or can swap to OpenAI TTS
-        tts = gTTS(text=text, lang='en')
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
-        tts.save(temp_file.name)
-        return temp_file.name
+        # gTTS is synchronous, run in thread to avoid blocking
+        def _save_tts():
+            tts = gTTS(text=text, lang='en')
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
+            tts.save(temp_file.name)
+            return temp_file.name
+            
+        return await asyncio.to_thread(_save_tts)
 
 voice_service = VoiceService()
