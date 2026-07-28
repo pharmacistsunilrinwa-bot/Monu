@@ -154,3 +154,4 @@ Thumbs.db
 *.iml
 .env
 node_modules/
+node_modules/
