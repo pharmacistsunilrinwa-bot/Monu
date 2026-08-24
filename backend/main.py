@@ -8,7 +8,6 @@ from models import ChatHistory
 from services.gemini_service import gemini_service
 from services.voice_service import voice_service
 from services.search_service import search_service
-from services.google_workspace_service import google_workspace_service
 from services.analysis_service import analysis_service
 from services.sentiment_service import sentiment_service
 from services.gemini_logic_service import gemini_logic_service
@@ -135,15 +134,6 @@ async def voice_to_text(file: UploadFile = File(...)):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-# --- Power Feature: Google Workspace ---
-@app.get("/auth/url")
-async def get_auth_url():
-    return {"url": google_workspace_service.get_auth_url()}
-
-@app.get("/google/gmail")
-async def list_gmail(creds: str):
-    return await google_workspace_service.list_gmail_messages(creds)
-
 # --- Power Feature: Data Analysis ---
 @app.post("/analysis/csv")
 async def analyze_csv(file: UploadFile = File(...)):
@@ -167,9 +157,38 @@ async def make_dir(name: str):
 
 @app.post("/tasks/plan", response_model=ProjectPlan)
 async def plan_tasks(request: TaskPlanRequest):
-    prompt = f"Create a detailed project plan for the following goal: {request.goal}. Return the response in JSON format with 'title' and a list of 'steps' (each step having 'step' and 'description')."
+    prompt = (
+        f"Create a detailed project plan for the following goal: {request.goal}. "
+        "You MUST return the response as a valid, parsable JSON object. "
+        "The JSON object must have exactly two keys:\n"
+        "1. 'title' (a string matching the goal)\n"
+        "2. 'steps' (a list of objects, where each object has 'step' and 'description' keys).\n"
+        "Do not include any explanation or markdown formatting (like ```json) outside the JSON."
+    )
     response_text = await gemini_service.generate_content(prompt)
-    return ProjectPlan(title=request.goal, steps=[{"step": "Initial Step", "description": response_text}])
+    
+    # Robust extraction and parsing of JSON
+    import json
+    import re
+    try:
+        cleaned_text = response_text.strip()
+        if cleaned_text.startswith("```"):
+            cleaned_text = re.sub(r"^```[a-zA-Z]*\n?", "", cleaned_text)
+            cleaned_text = re.sub(r"\n?```$", "", cleaned_text)
+        cleaned_text = cleaned_text.strip()
+        
+        parsed_data = json.loads(cleaned_text)
+        if "title" in parsed_data and "steps" in parsed_data and isinstance(parsed_data["steps"], list):
+            steps = []
+            for step in parsed_data["steps"]:
+                if isinstance(step, dict) and "step" in step and "description" in step:
+                    steps.append({"step": str(step["step"]), "description": str(step["description"])})
+            if steps:
+                return ProjectPlan(title=str(parsed_data.get("title", request.goal)), steps=steps)
+    except Exception as parse_err:
+        print(f"Failed to parse structured JSON from Gemini response: {parse_err}. Raw text was: {response_text}")
+        
+    return ProjectPlan(title=request.goal, steps=[{"step": "Detailed Plan", "description": response_text}])
 
 if __name__ == "__main__":
     import uvicorn

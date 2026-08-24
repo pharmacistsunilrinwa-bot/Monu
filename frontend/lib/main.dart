@@ -274,7 +274,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                     child: MarkdownBody(
-                      data: msg["content"]!,
+                      data: msg["content"] ?? "",
                       styleSheet: MarkdownStyleSheet(
                         p: const TextStyle(color: Colors.white, fontSize: 16),
                       ),

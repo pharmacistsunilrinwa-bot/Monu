@@ -9,7 +9,7 @@ load_dotenv()
 
 class GeminiLogicService:
     def __init__(self):
-        self.keys = os.getenv("GEMINI_KEYS", "").split(",")
+        self.keys = [k.strip() for k in os.getenv("GEMINI_KEYS", "").split(",") if k.strip()]
         self.current_key_index = 0
         self.system_instruction = (
             "You are a highly logical Personal AI Assistant. "
@@ -20,7 +20,9 @@ class GeminiLogicService:
         self._configure_genai()
 
     def _configure_genai(self):
-        key = self.keys[self.current_key_index].strip()
+        if not self.keys:
+            raise ValueError("No Gemini API keys found in environment variables.")
+        key = self.keys[self.current_key_index]
         genai.configure(api_key=key)
         self.model = genai.GenerativeModel(
             model_name='gemini-1.5-flash',
@@ -28,8 +30,9 @@ class GeminiLogicService:
         )
         
     def rotate_key(self):
-        self.current_key_index = (self.current_key_index + 1) % len(self.keys)
-        self._configure_genai()
+        if self.keys:
+            self.current_key_index = (self.current_key_index + 1) % len(self.keys)
+            self._configure_genai()
 
     async def get_context(self, db: AsyncSession, user_id: str, limit: int = 5):
         result = await db.execute(
@@ -44,14 +47,17 @@ class GeminiLogicService:
             context += f"User: {entry.message}\nAssistant: {entry.response}\n"
         return context
 
-    async def reasoned_chat(self, prompt: str, context: str = ""):
+    async def reasoned_chat(self, prompt: str, context: str = "", attempt: int = 0):
         full_prompt = f"Previous conversation:\n{context}\n\nCurrent message: {prompt}" if context else prompt
         try:
             response = await self.model.generate_content_async(full_prompt)
             return response.text
         except Exception as e:
+            if attempt >= len(self.keys):
+                print(f"All Gemini keys exhausted. Failed to generate reasoned chat.")
+                raise e
             print(f"Logic Error with key {self.current_key_index}: {e}. Rotating...")
             self.rotate_key()
-            return await self.reasoned_chat(prompt, context)
+            return await self.reasoned_chat(prompt, context, attempt + 1)
 
 gemini_logic_service = GeminiLogicService()
