@@ -4,6 +4,8 @@ from typing import List, Optional
 class ChatRequest(BaseModel):
     user_id: Optional[str] = "default"
     message: str
+    attachment: Optional[str] = None  # Base64 encoded string of attachment
+    attachment_mime: Optional[str] = None  # MIME type of attachment, e.g. "image/jpeg"
 
 class ChatResponse(BaseModel):
     response: str

@@ -12,11 +12,13 @@ from services.analysis_service import analysis_service
 from services.sentiment_service import sentiment_service
 from services.gemini_logic_service import gemini_logic_service
 from services.file_manager_service import file_manager_service
+from services.memory_service import memory_service
 from schemas import ChatRequest, ChatResponse, SearchRequest, TaskPlanRequest, ProjectPlan
 import os
 import shutil
 import asyncio
 import socket
+import base64
 
 app = FastAPI(title="Personal AI Assistant API")
 
@@ -89,10 +91,34 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     # 2. Analyze sentiment (non-blocking)
     asyncio.create_task(asyncio.to_thread(sentiment_service.analyze_text, request.message))
     
-    # 3. Get reasoned response with context
-    response_text = await gemini_logic_service.reasoned_chat(request.message, context)
+    # 3. Check if this is a memory forget command
+    message_lower = request.message.lower().strip()
+    is_forget_command = any(message_lower.startswith(prefix) for prefix in [
+        "forget about", "forget yesterday", "forget the last", "forget my preference", 
+        "delete my memory", "clear memory"
+    ]) or message_lower in ["clear all memory", "clear history", "forget everything"]
     
-    # 4. Save to history
+    if is_forget_command:
+        result_msg = await memory_service.forget_semantic(db, request.user_id, request.message)
+        return ChatResponse(response=result_msg)
+    
+    # 4. Decode attachment bytes if present
+    attachment_bytes = None
+    if request.attachment:
+        try:
+            attachment_bytes = base64.b64decode(request.attachment)
+        except Exception as e:
+            print(f"Failed to decode attachment base64: {e}")
+            
+    # 5. Get reasoned response with context
+    response_text = await gemini_logic_service.reasoned_chat(
+        prompt=request.message, 
+        context=context,
+        attachment_bytes=attachment_bytes,
+        attachment_mime=request.attachment_mime
+    )
+    
+    # 6. Save to history
     new_entry = ChatHistory(
         user_id=request.user_id,
         message=request.message,
@@ -111,14 +137,41 @@ async def get_chat_history(user_id: str = "default", db: AsyncSession = Depends(
         .order_by(ChatHistory.timestamp.asc())
     )
     history = result.scalars().all()
-    return [{"role": "user", "content": h.message} if i % 2 == 0 else {"role": "assistant", "content": h.response} 
-            for h in history for i in range(2)]
+    
+    response_list = []
+    for h in history:
+        # User message
+        response_list.append({
+            "id": str(h.id),
+            "role": "user",
+            "content": h.message,
+            "timestamp": h.timestamp.isoformat() if h.timestamp else ""
+        })
+        # Assistant response
+        response_list.append({
+            "id": str(h.id),
+            "role": "assistant",
+            "content": h.response,
+            "timestamp": h.timestamp.isoformat() if h.timestamp else ""
+        })
+    return response_list
 
 @app.delete("/chat/history")
 async def clear_chat_history(user_id: str = "default", db: AsyncSession = Depends(get_db)):
     from sqlalchemy import delete
     await db.execute(delete(ChatHistory).where(ChatHistory.user_id == user_id))
     return {"success": True, "message": "History cleared"}
+
+@app.delete("/chat/history/{id}")
+async def delete_chat_entry(id: int, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import delete
+    await db.execute(delete(ChatHistory).where(ChatHistory.id == id))
+    return {"success": True, "message": f"Entry {id} deleted"}
+
+@app.post("/chat/forget")
+async def forget_memory(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+    result_msg = await memory_service.forget_semantic(db, request.user_id, request.message)
+    return {"success": True, "message": result_msg}
 
 @app.post("/voice-to-text")
 async def voice_to_text(file: UploadFile = File(...)):
