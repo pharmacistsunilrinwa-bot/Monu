@@ -1,23 +1,31 @@
 import os
 import asyncio
 import google.generativeai as genai
+from services.api_key_manager import api_key_manager, execute_with_failover
 
 class SearchService:
     @staticmethod
     async def web_search(query: str):
-        # Configure Gemini using available keys safely
-        keys = [k.strip() for k in os.getenv("GEMINI_KEYS", "").split(",") if k.strip()]
-        if keys:
-            genai.configure(api_key=keys[0])
-        else:
-            print("Warning: No Gemini API keys found in environment for Search Service.")
+        model_container = {"model": None}
+        
+        def _recreate_model():
+            """Callback to recreate the model instance when API keys are failover-rotated."""
+            model_container["model"] = genai.GenerativeModel(
+                model_name='gemini-1.5-flash', 
+                tools='google_search'
+            )
             
-        # Use Google Search grounding in Gemini 1.5
-        model = genai.GenerativeModel(model_name='gemini-1.5-flash', tools='google_search')
-        try:
-            # We run the async call to generate content with search grounding
-            response = await model.generate_content_async(
+        async def _call():
+            response = await model_container["model"].generate_content_async(
                 f"Perform a Google Search and provide highly accurate, current information on: {query}"
+            )
+            return response
+
+        try:
+            response = await execute_with_failover(
+                service_name="SearchService",
+                api_call_fn=_call,
+                model_creator_fn=_recreate_model
             )
             
             results = []

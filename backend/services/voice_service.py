@@ -4,6 +4,7 @@ import mimetypes
 import google.generativeai as genai
 from gtts import gTTS
 import tempfile
+from services.api_key_manager import api_key_manager, execute_with_failover
 
 class VoiceService:
     @staticmethod
@@ -28,15 +29,6 @@ class VoiceService:
             else:
                 mime_type = 'audio/mp3'  # default fallback
 
-        # Configure Gemini using available keys safely
-        keys = [k.strip() for k in os.getenv("GEMINI_KEYS", "").split(",") if k.strip()]
-        if keys:
-            genai.configure(api_key=keys[0])
-        else:
-            print("Warning: No Gemini API keys found in environment for Voice Service.")
-
-        model = genai.GenerativeModel('gemini-1.5-flash')
-
         # Read audio file bytes
         with open(audio_file_path, "rb") as f:
             audio_bytes = f.read()
@@ -48,16 +40,25 @@ class VoiceService:
             "Output only the transcribed text."
         )
 
-        # Query Gemini model with the audio file as inline data
-        response = await model.generate_content_async([
-            {
-                "mime_type": mime_type,
-                "data": audio_bytes
-            },
-            prompt
-        ])
+        model_container = {"model": None}
+        def _recreate_model():
+            model_container["model"] = genai.GenerativeModel('gemini-1.5-flash')
 
-        return response.text.strip()
+        async def _call():
+            response = await model_container["model"].generate_content_async([
+                {
+                    "mime_type": mime_type,
+                    "data": audio_bytes
+                },
+                prompt
+            ])
+            return response.text.strip()
+
+        return await execute_with_failover(
+            service_name="VoiceService",
+            api_call_fn=_call,
+            model_creator_fn=_recreate_model
+        )
 
     @staticmethod
     async def text_to_speech(text: str) -> str:
