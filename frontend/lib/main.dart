@@ -39,7 +39,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Map<String, String>> _messages = [];
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecording = false;
-  String _baseUrl = "https://trmex-1.onrender.com";
+  String _baseUrl = "https://kebab-retrace-transpose.ngrok-free.dev";
   final ScrollController _scrollController = ScrollController();
 
   @override
