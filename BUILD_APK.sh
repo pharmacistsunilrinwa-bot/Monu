@@ -90,7 +90,7 @@ case $BUILD_CHOICE in
         ;;
     2)
         print_header "Building Release APK"
-        flutter build apk --release
+        flutter build apk --release --android-skip-build-dependency-validation
         APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
         ;;
     3)
