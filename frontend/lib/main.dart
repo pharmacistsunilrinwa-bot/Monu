@@ -239,10 +239,10 @@ class _ChatScreenState extends State<ChatScreen> {
         
         // If it was a forget/clear command, re-sync history to reflect changes immediately
         final lowerText = promptText.toLowerCase().trim();
-        final isForgetCommand = any(lowerText.startsWith(prefix) for prefix in [
+        final isForgetCommand = [
           "forget about", "forget yesterday", "forget the last", "forget my preference", 
           "delete my memory", "clear memory"
-        ]) || lowerText == "clear all memory" || lowerText == "clear history" || lowerText == "forget everything";
+        ].any((prefix) => lowerText.startsWith(prefix)) || lowerText == "clear all memory" || lowerText == "clear history" || lowerText == "forget everything";
         
         if (isForgetCommand) {
           _syncWithServer();
