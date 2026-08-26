@@ -19,7 +19,7 @@ class GeminiLogicService:
     def _recreate_model(self):
         """Callback to recreate the model instance when API keys are failover-rotated."""
         self.model = genai.GenerativeModel(
-            model_name='gemini-3-flash',
+            model_name='gemini-3.1-pro',
             system_instruction=self.system_instruction
         )
 

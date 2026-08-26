@@ -11,7 +11,7 @@ class SearchService:
         def _recreate_model():
             """Callback to recreate the model instance when API keys are failover-rotated."""
             model_container["model"] = genai.GenerativeModel(
-                model_name='gemini-3-flash', 
+                model_name='gemini-3.5-flash', 
                 tools='google_search'
             )
             

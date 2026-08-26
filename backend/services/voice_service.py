@@ -42,7 +42,7 @@ class VoiceService:
 
         model_container = {"model": None}
         def _recreate_model():
-            model_container["model"] = genai.GenerativeModel('gemini-3-flash')
+            model_container["model"] = genai.GenerativeModel('gemini-3.5-flash-lite')
 
         async def _call():
             response = await model_container["model"].generate_content_async([
