@@ -24,7 +24,7 @@ dependencies:
   audioplayers: ^5.2.1
   
   # Speech to Text and Text to Speech
-  speech_to_text: ^6.3.0
+  speech_to_text: ^7.0.0
   flutter_tts: ^4.1.0
 
   # Image and video selection
