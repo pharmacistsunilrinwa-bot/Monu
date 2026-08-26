@@ -8,7 +8,7 @@ class GeminiService:
 
     def _recreate_model(self):
         """Callback to recreate the model instance when API keys are failover-rotated."""
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel('gemini-3-flash')
 
     async def generate_content(self, prompt: str):
         """Generates content using Gemini with automatic failover key-rotation."""
