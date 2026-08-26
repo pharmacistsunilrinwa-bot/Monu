@@ -378,7 +378,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text("Choose Photo from Gallery"),
-              onPressed: () {
+              onTap: () {
                 Navigator.pop(context);
                 _pickAttachment(ImageSource.gallery, isVideo: false);
               },
@@ -386,7 +386,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text("Take Photo with Camera"),
-              onPressed: () {
+              onTap: () {
                 Navigator.pop(context);
                 _pickAttachment(ImageSource.camera, isVideo: false);
               },
@@ -394,7 +394,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ListTile(
               leading: const Icon(Icons.video_library),
               title: const Text("Choose Video from Gallery"),
-              onPressed: () {
+              onTap: () {
                 Navigator.pop(context);
                 _pickAttachment(ImageSource.gallery, isVideo: true);
               },
@@ -402,7 +402,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ListTile(
               leading: const Icon(Icons.videocam),
               title: const Text("Take Video with Camera"),
-              onPressed: () {
+              onTap: () {
                 Navigator.pop(context);
                 _pickAttachment(ImageSource.camera, isVideo: true);
               },
